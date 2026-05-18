@@ -39,6 +39,12 @@ Pairwise_culture_MSPm1_0hr <- read_excel("D:/ntu/11_kekelab/cElegent_project_AS/
 Pairwise_culture_MSPm1_24hr <- read_excel("D:/ntu/11_kekelab/cElegent_project_AS/20260414 Pairwise competition assay (MSPm1 vs CeMbio)-summary.xlsx", 
     sheet = "24 hr")
 
+
+JUb19_male_leaving_raw_data <- read_excel("D:/ntu/11_kekelab/cElegent_project_AS/JUb19 male leaving raw data.xlsx", 
+    sheet = "Sheet1")
+
+Pairwise_competition_assay_JUb19_vs_CEN2ent_DR_91_19 <- read_excel("D:/ntu/11_kekelab/cElegent_project_AS/20260508 Pairwise competition assay (JUb19 vs CEN2ent)-DR=91 ; 19.xlsx")
+
 ```
 
 ## Data format reconstruction
@@ -594,7 +600,7 @@ pairMSPm1_24hr <- tidy_df %>%
   mutate(replicate = row_number()) %>%
   ungroup() %>%
   
-  mutate(`growth time` = "0hr") %>%  #
+  mutate(`growth time` = "24hr") %>%  #
   select(strain, replicate, everything())
 
 # extract JUb19 to pairMSPm1
@@ -920,7 +926,7 @@ interComp_plot_MSPm1 <- ggplot(fitness_df_MSPm1,
 print(interComp_plot_MSPm1)
 
 # 6 抽 1000 不做mean
-mono_JUb19_raw <- mono_df %>%
+mono_MSPm1_raw <- mono_df %>%
   filter(strain == "MSPm1") %>%
   # 確認欄位沒有 NA，並計算出每次重複的 r_D
   mutate(r_D_raw = (logM24 - logM0) / 24)
@@ -971,3 +977,6 @@ interComp_boot_plot_indi_MSPm1 <- ggplot(boot_fitness_df,
 print(interComp_boot_plot_indi_MSPm1)
 
 ```
+
+
+
