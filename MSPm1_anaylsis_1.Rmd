@@ -1,0 +1,648 @@
+---
+title: "MSPm1_analysis"
+output: html_notebook
+---
+
+
+## MSPm1
+```{r}
+## 0 hr
+pairMSPm1_0hr_untreated <- Pairwise_culture_MSPm1_0hr
+
+colnames(pairMSPm1_0hr_untreated) <- pairMSPm1_0hr_untreated[1,]
+pairMSPm1_0hr_untreated <- pairMSPm1_0hr_untreated[2:35,]
+# 1. find block starts
+start_idx <- c(0, which(pairMSPm1_0hr_untreated$`0hr` == "0hr")) 
+
+# 2. extract blocks
+blocks <- map(seq_along(start_idx), function(i) {
+  
+  start <- start_idx[i]
+  end <- if (i < length(start_idx)) start_idx[i + 1] - 1 else nrow(pairMSPm1_0hr_untreated)
+  
+  block <- pairMSPm1_0hr_untreated[start:end, ]
+  colnames(block) <- make.unique(colnames(block))
+  # remove empty rows
+  block <- block %>% filter(!if_all(everything(), is.na))
+  
+  if (i == 1) {
+    # FIRST BLOCK → KEEP ORIGINAL COLUMN NAMES
+    block <- block %>%
+      rename(metric = `0hr`) #
+    
+  } else {
+    # OTHER BLOCKS → USE HEADER ROW
+    
+    new_names <- as.character(unlist(block[1, ]))
+    
+
+# remove NA column names completely
+    valid_cols <- !is.na(new_names) & new_names != ""
+    
+    block <- block[, valid_cols]
+    new_names <- new_names[valid_cols]
+    
+# make names unique (important!)
+new_names <- make.unique(new_names)
+
+colnames(block) <- new_names
+  
+  # remove header row
+  block <- block[-1, ]
+  
+  # rename first column
+  names(block)[1] <- "metric"
+  }
+  # reshape long
+  block_long <- block %>%
+    pivot_longer(-metric, names_to = "strain", values_to = "value")
+  
+  return(block_long)
+})
+
+# 3. combine
+tidy_df <- bind_rows(blocks)
+
+# 4. clean numbers
+tidy_df <- tidy_df %>%
+  mutate(value = parse_number(value))
+
+# 5. assign replicate IDs
+pairMSPm1_0hr <- tidy_df %>%
+  group_by(strain) %>%
+  mutate(metric = case_when(
+    metric == "CFU/ml" & row_number() < 5 ~ "Donor_CFU",     # 前半段的 CFU
+    metric == "CFU/ml" & row_number() >= 5 ~ "Recipient_CFU", # 後半段的 CFU
+    TRUE ~ metric
+  )) %>%
+  ungroup() %>%
+  pivot_wider(names_from = metric, values_from = value) %>%
+  
+  # FIRST clean strain names
+  mutate(
+    strain = str_remove(strain, "\\.\\.\\.\\d+$"),
+    strain = str_remove(strain, "\\.\\d+$")
+  ) %>%
+  
+  # THEN assign replicate correctly
+  group_by(strain) %>%
+  mutate(replicate = row_number()) %>%
+  ungroup() %>%
+  
+  mutate(`growth time` = "0hr") %>%  #
+  select(strain, replicate, everything())
+
+# extract JUb19 to pairMSPm1
+extracted_JUb19_data <- pairJUb19_0hr %>%
+  filter(strain == "MSPm1") %>%
+  mutate(
+    strain = "JUb19", 
+    temp_D_CFU = Recipient_CFU, 
+    temp_R_CFU = Donor_CFU,
+    temp_logD = `log recipient`,
+    temp_logR = `log donor`
+  ) %>%
+  mutate(
+    Donor_CFU = temp_D_CFU,
+    Recipient_CFU = temp_R_CFU,
+    `log donor` = temp_logD,
+    `log recipient` = temp_logR
+  ) %>%
+  select(-temp_D_CFU, -temp_R_CFU, -temp_logD, -temp_logR) # 移除暫存變數
+
+pairMSPm1_0hr <- bind_rows(pairMSPm1_0hr, extracted_JUb19_data) %>%
+  arrange(strain, replicate)
+
+# pairMSPm1_0hr
+
+## 24 hr
+pairMSPm1_24hr_untreated <- Pairwise_culture_MSPm1_24hr
+
+colnames(pairMSPm1_24hr_untreated) <- pairMSPm1_24hr_untreated[1,]
+pairMSPm1_24hr_untreated <- pairMSPm1_24hr_untreated[2:35,]
+# 1. find block starts
+start_idx <- c(0, which(pairMSPm1_24hr_untreated$`24hr` == "24hr")) 
+
+# 2. extract blocks
+blocks <- map(seq_along(start_idx), function(i) {
+  
+  start <- start_idx[i]
+  end <- if (i < length(start_idx)) start_idx[i + 1] - 1 else nrow(pairMSPm1_24hr_untreated)
+  
+  block <- pairMSPm1_24hr_untreated[start:end, ]
+  colnames(block) <- make.unique(colnames(block))
+  # remove empty rows
+  block <- block %>% filter(!if_all(everything(), is.na))
+  
+  if (i == 1) {
+    # FIRST BLOCK → KEEP ORIGINAL COLUMN NAMES
+    block <- block %>%
+      rename(metric = `24hr`) #
+    
+  } else {
+    # OTHER BLOCKS → USE HEADER ROW
+    
+    new_names <- as.character(unlist(block[1, ]))
+    
+
+# remove NA column names completely
+    valid_cols <- !is.na(new_names) & new_names != ""
+    
+    block <- block[, valid_cols]
+    new_names <- new_names[valid_cols]
+    
+# make names unique (important!)
+new_names <- make.unique(new_names)
+
+colnames(block) <- new_names
+  
+  # remove header row
+  block <- block[-1, ]
+  
+  # rename first column
+  names(block)[1] <- "metric"
+  }
+  # reshape long
+  block_long <- block %>%
+    pivot_longer(-metric, names_to = "strain", values_to = "value")
+  
+  return(block_long)
+})
+
+# 3. combine
+tidy_df <- bind_rows(blocks)
+
+# 4. clean numbers
+tidy_df <- tidy_df %>%
+  mutate(value = parse_number(value))
+
+# 5. assign replicate IDs
+pairMSPm1_24hr <- tidy_df %>%
+  group_by(strain) %>%
+  mutate(metric = case_when(
+    metric == "CFU/ml" & row_number() < 5 ~ "Donor_CFU",     # 前半段的 CFU
+    metric == "CFU/ml" & row_number() >= 5 ~ "Recipient_CFU", # 後半段的 CFU
+    TRUE ~ metric
+  )) %>%
+  ungroup() %>%
+  pivot_wider(names_from = metric, values_from = value) %>%
+  
+  # FIRST clean strain names
+  mutate(
+    strain = str_remove(strain, "\\.\\.\\.\\d+$"),
+    strain = str_remove(strain, "\\.\\d+$")
+  ) %>%
+  
+  # THEN assign replicate correctly
+  group_by(strain) %>%
+  mutate(replicate = row_number()) %>%
+  ungroup() %>%
+  
+  mutate(`growth time` = "24hr") %>%  #
+  select(strain, replicate, everything())
+
+# extract JUb19 to pairMSPm1
+extracted_JUb19_data <- pairJUb19_24hr %>%
+  filter(strain == "MSPm1") %>%
+  mutate(
+    strain = "JUb19", 
+    temp_D_CFU = Recipient_CFU, 
+    temp_R_CFU = Donor_CFU,
+    temp_logD = `log recipient`,
+    temp_logR = `log donor`
+  ) %>%
+  mutate(
+    Donor_CFU = temp_D_CFU,
+    Recipient_CFU = temp_R_CFU,
+    `log donor` = temp_logD,
+    `log recipient` = temp_logR
+  ) %>%
+  select(-temp_D_CFU, -temp_R_CFU, -temp_logD, -temp_logR) 
+
+pairMSPm1_24hr <- bind_rows(pairMSPm1_24hr, extracted_JUb19_data) %>%
+  arrange(strain, replicate)
+
+# pairMSPm1_24hr
+
+pairMSPm1 <- inner_join(
+  pairMSPm1_0hr %>% select(strain, replicate, D0 = Donor_CFU, R0 = Recipient_CFU, 
+                           logD0 ='log donor', logR0 ='log recipient'),
+  pairMSPm1_24hr %>% select(strain, replicate, D24 = Donor_CFU, R24 = Recipient_CFU,
+                            logD24 ='log donor', logR24 ='log recipient'),
+  by = c("strain", "replicate")
+)
+pairMSPm1
+```
+
+# Frequency lineplot(MSPm1 vs others)
+```{r}
+# 計算頻率
+Donor_frequency_df <- pairMSPm1 %>%
+    mutate(
+        D_0hr = D0 / (D0 + R0),
+        D_24hr = D24 / (D24 + R24)
+    ) %>%
+    pivot_longer(cols = c(D_0hr, D_24hr), names_to = "Time", values_to = "Frequency")
+
+Recipient_frequency_df <- pairMSPm1 %>%
+    mutate(
+        R_0hr = R0 / (D0 + R0),
+        R_24hr = R24 / (D24 + R24)
+    ) %>%
+    pivot_longer(cols = c(R_0hr, R_24hr), names_to = "Time", values_to = "Frequency")
+
+# 畫斜率圖 (Slope graph)
+# donor MSPm1
+ggplot(Donor_frequency_df, 
+       aes(x = Time, y = Frequency, group = interaction(strain, replicate), color = strain)) +
+    geom_line(alpha = 0.5) +
+    geom_point() +
+    facet_wrap(~strain) +
+  scale_color_manual(values = my_colors)+
+    theme_minimal() +
+    labs(title = "Change in MSPm1 Frequency (0hr vs 24hr)",
+          x = "Time")
+
+# reciepient others 
+ggplot(Recipient_frequency_df, 
+       aes(x = Time, y = Frequency, group = interaction(strain, replicate), color = strain)) +
+    geom_line(alpha = 0.5) +
+    geom_point() +
+    facet_wrap(~strain) +
+  scale_color_manual(values = my_colors)+
+    theme_minimal() +
+    labs(title = "Change in Recipient Frequency compare to MSPm1(0hr vs 24hr)",
+          x = "Time")
+```
+
+# Bivariate fitness plots (MSPm1 vs others)
+```{r}
+log_plot_df <- pairMSPm1 %>%
+    mutate(
+        log_growth_donor = logD24 - logD0,       # Donor 的成長量 (D24-D0)/D0
+        log_growth_recipient = logR24 - logR0    # Recipient 的成長量
+    )
+
+
+
+## bivariate fitness plot individual
+Biplot_indi_MSPm1 <- ggplot(log_plot_df, aes(x = log_growth_donor, y = log_growth_recipient, color = strain)) + 
+    # 加上 1:1 的等量成長線 (紅虛線)
+    geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "red", size = 0.8) +
+    geom_hline(yintercept = 0) +
+    # 畫出 6 個 Replicate 的散佈點
+    geom_point(size = 3, alpha = 0.7) +
+    # 加上每個 Strain 的平均值中心點 (更大的點)
+    stat_summary(fun = mean, geom = "point", size = 6, shape = 18) +
+    # 套用 13 色固定色盤
+    scale_color_manual(values = my_colors) +
+    theme_bw() +
+    labs(
+        title = "MSPm1 Log10 Fitness Plot: Donor vs Recipient",
+        x = "Donor Log10 Growth (0 -> 24hr)",
+        y = "Recipient Log10 Growth (0 -> 24hr)",
+        color = "Bacterial Strain"
+    ) 
+
+print(Biplot_indi_MSPm1)
+```
+
+# Interspecies competition value between donor and recepient (MSPm1 vs others) 
+\[alpha_{DR} = \left(r_D-\alpha_{DD}N_{D0}^c-\frac{lnN_{D24}^c - lnN_{D0}^c}{24}\right).\left(\frac{1}{N_{R0}^c}\right)\] 
+\[alpha_{RD} = \left(r_R-\alpha_{RR}N_{R0}^c-\frac{lnN_{R24}^c - lnN_{R0}^c}{24}\right).\left(\frac{-1}{N_{D0}^c}\right)\] 
+```{r}
+scale_factor <- 1e9
+
+# ============================================================
+# 1. Prepare monoculture-derived parameters
+# Use pooled Nstart model
+# ============================================================
+
+mono_param_pooled_Nstart_beta <- selflimit_pooled_N_start %>%
+  ungroup() %>%
+  transmute(
+    strain,
+    r_i,
+    alpha_ii_signed,
+    
+    # Positive self-limitation coefficient
+    # g = r_i - beta_ii_selflimit * Nstart_s
+    beta_ii_selflimit = -alpha_ii_signed
+  )
+
+# Donor = MSPm1
+param_D <- mono_param_pooled_Nstart_beta %>%
+  filter(strain == "MSPm1") %>%
+  slice(1)
+
+# param_D
+
+
+# ============================================================
+# 2. Calculate beta_DR and beta_RD
+# D = Donor = MSPm1
+# R = Recipient = CeMbio strain
+# ============================================================
+
+fitness_df_MSPm1_pooled_Nstart <- pairMSPm1 %>%
+  left_join(
+    mono_param_pooled_Nstart_beta %>%
+      rename(
+        r_R = r_i,
+        alpha_RR_signed = alpha_ii_signed,
+        beta_RR_selflimit = beta_ii_selflimit
+      ),
+    by = "strain"
+  ) %>%
+  mutate(
+    # -----------------------------
+    # Donor = MSPm1
+    # -----------------------------
+    N_D_0_comp = as.numeric(D0)/scale_factor,
+    N_D_24_comp = as.numeric(D24)/scale_factor,
+    
+    # -----------------------------
+    # Recipient = CeMbio strain
+    # -----------------------------
+    N_R_0_comp = as.numeric(R0)/scale_factor,
+    N_R_24_comp = as.numeric(R24)/scale_factor,
+    
+    # -----------------------------
+    # Scaled starting density
+    # Must match pooled Nstart model
+    # -----------------------------
+    D0_s = N_D_0_comp ,
+    R0_s = N_R_0_comp ,
+    
+    # -----------------------------
+    # Observed pairwise growth rate
+    # -----------------------------
+    g_D = log(N_D_24_comp / N_D_0_comp) / 24,
+    g_R = log(N_R_24_comp / N_R_0_comp) / 24,
+    
+    # -----------------------------
+    # Donor monoculture parameters
+    # from pooled Nstart model
+    # -----------------------------
+    r_D = param_D$r_i,
+    alpha_DD_signed = param_D$alpha_ii_signed,
+    beta_DD_selflimit = param_D$beta_ii_selflimit,
+    
+    # ========================================================
+    # Positive limitation model
+    #
+    # g_D = r_D - beta_DD * D0_s - beta_DR * R0_s
+    # g_R = r_R - beta_RR * R0_s - beta_RD * D0_s
+    # ========================================================
+    
+    # beta_DR:
+    # Recipient effect on donor MSPm1
+    # beta_DR > 0 means recipient suppresses MSPm1
+    beta_DR_pooled_Nstart =
+      (r_D - beta_DD_selflimit * D0_s - g_D) / R0_s,
+    
+    # beta_RD:
+    # Donor MSPm1 effect on recipient
+    # beta_RD > 0 means MSPm1 suppresses recipient
+    beta_RD_pooled_Nstart =
+      (r_R - beta_RR_selflimit * R0_s - g_R) / D0_s,
+    
+    # Signed alpha version
+    # alpha < 0 means suppression
+    alpha_DR_signed_pooled_Nstart = -beta_DR_pooled_Nstart,
+    alpha_RD_signed_pooled_Nstart = -beta_RD_pooled_Nstart
+  )
+
+# fitness_df_MSPm1_pooled_Nstart
+fitness_summary_MSPm1_pooled_Nstart <- fitness_df_MSPm1_pooled_Nstart %>%
+  group_by(strain) %>%
+  summarise(
+    n = n(),
+    
+    mean_beta_DR = mean(beta_DR_pooled_Nstart, na.rm = TRUE),
+    sd_beta_DR = sd(beta_DR_pooled_Nstart, na.rm = TRUE),
+    se_beta_DR = sd_beta_DR / sqrt(sum(!is.na(beta_DR_pooled_Nstart))),
+    
+    mean_beta_RD = mean(beta_RD_pooled_Nstart, na.rm = TRUE),
+    sd_beta_RD = sd(beta_RD_pooled_Nstart, na.rm = TRUE),
+    se_beta_RD = sd_beta_RD / sqrt(sum(!is.na(beta_RD_pooled_Nstart))),
+    
+    mean_alpha_DR_signed = mean(alpha_DR_signed_pooled_Nstart, na.rm = TRUE),
+    sd_alpha_DR_signed = sd(alpha_DR_signed_pooled_Nstart, na.rm = TRUE),
+    
+    mean_alpha_RD_signed = mean(alpha_RD_signed_pooled_Nstart, na.rm = TRUE),
+    sd_alpha_RD_signed = sd(alpha_RD_signed_pooled_Nstart, na.rm = TRUE),
+    
+    .groups = "drop"
+  ) %>%
+  mutate(
+    DR_interpretation = case_when(
+      mean_beta_DR > 0 ~ "Recipient suppresses MSPm1",
+      mean_beta_DR < 0 ~ "Recipient facilitates MSPm1",
+      TRUE ~ "neutral"
+    ),
+    RD_interpretation = case_when(
+      mean_beta_RD > 0 ~ "MSPm1 suppresses recipient",
+      mean_beta_RD < 0 ~ "MSPm1 facilitates recipient",
+      TRUE ~ "neutral"
+    )
+  )
+
+# fitness_summary_MSPm1_pooled_Nstart
+fitness_beta_long_MSPm1 <- fitness_df_MSPm1_pooled_Nstart %>%
+  select(
+    strain,
+    replicate,
+    beta_DR_pooled_Nstart,
+    beta_RD_pooled_Nstart
+  ) %>%
+  pivot_longer(
+    cols = c(beta_DR_pooled_Nstart, beta_RD_pooled_Nstart),
+    names_to = "beta_type",
+    values_to = "beta_value"
+  ) %>%
+  mutate(
+    beta_type = case_when(
+      beta_type == "beta_DR_pooled_Nstart" ~
+        "alpha_DR: Recipient effect on MSPm1",
+      beta_type == "beta_RD_pooled_Nstart" ~
+        "alpha_RD: MSPm1 effect on Recipient",
+      TRUE ~ beta_type
+    )
+  )
+
+interComp_beta_plot_MSPm1_pooled_Nstart <- ggplot(
+  fitness_beta_long_MSPm1,
+  aes(
+    x = reorder(strain, beta_value),
+    y = beta_value,
+    color = strain
+  )
+) +
+  geom_jitter(
+    width = 0.15,
+    alpha = 0.5,
+    size = 2
+  ) +
+  stat_summary(
+    fun.data = "mean_se",
+    geom = "errorbar",
+    width = 0.3,
+    size = 1,
+    color = "black"
+  ) +
+  stat_summary(
+    fun = "mean",
+    geom = "point",
+    size = 4,
+    color = "black",
+    shape = 18
+  ) +
+  geom_hline(
+    yintercept = 0,
+    linetype = "dashed",
+    color = "red"
+  ) +
+  scale_color_manual(values = my_colors) +
+  facet_wrap(~ beta_type, scales = "free_y") +
+  theme_minimal() +
+  labs(
+    title = "Interspecies competition index statistical fitting",
+    subtitle = "MSPm1 as donor",
+    x = "Bacterial recipient",
+    y = "Interspecific limitation coefficient alpha"
+  ) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    legend.position = "none"
+  )
+
+print(interComp_beta_plot_MSPm1_pooled_Nstart)
+
+```
+
+\[alpha_{DR} = \left(\frac{lnN_{D24}^c - lnN_{D24}^m}{24}\right).\left(\frac{-1}{N_{R0}^c}\right)\]
+\[alpha_{RD} = \left(\frac{lnN_{R24}^c - lnN_{R24}^m}{24}\right).\left(\frac{-1}{N_{D0}^c}\right)\]
+```{r}
+# 1. Extract Donor monoculture carrying capacity and growth rate
+K_Donor_val <- monoMean_df %>%
+  filter(strain == "MSPm1") %>%
+  summarise(
+    K_D_mean = mean_M24,
+    r_D = (mean_logM24 - mean_logM0) / 24,
+    .groups = "drop"
+  )
+
+# 2. Prepare pairwise competition dataframe
+fitness_df_MSPm1 <- pairMSPm1 %>%
+  # left_join brings recipient monoculture information
+  # mean_M24 here is the recipient monoculture 24hr abundance
+  left_join(
+    monoMean_df %>%
+      select(
+        strain,
+        K_R_mean = mean_M24,
+        mean_logM0_R = mean_logM0,
+        mean_logM24_R = mean_logM24
+      ),
+    by = "strain"
+  ) %>%
+  mutate(
+    # -----------------------------
+    # Donor = MSPm1
+    # -----------------------------
+    N_D_0_comp = D0,
+    N_D_24_comp = D24,
+    N_D_24_mono = K_Donor_val$K_D_mean,
+    r_D = K_Donor_val$r_D,
+    
+    # -----------------------------
+    # Recipient = CeMbio strain
+    # -----------------------------
+    N_R_0_comp = R0,
+    N_R_24_comp = R24,
+    N_R_24_mono = K_R_mean,
+    r_R = (mean_logM24_R - mean_logM0_R) / 24,
+    alpha_DR_custom = ((N_D_24_comp - N_D_24_mono) / 24) * (-1 / N_R_0_comp),
+    alpha_RD_custom = ((N_R_24_comp - N_R_24_mono) / 24) * (-1 / N_D_0_comp),
+  )
+
+# fitness_df_MSPm1
+
+# 3. Summary table
+fitness_summary_MSPm1 <- fitness_df_MSPm1 %>%
+  group_by(strain) %>%
+  summarise(
+    n = n(),
+    
+    mean_alpha_DR_custom = mean(alpha_DR_custom, na.rm = TRUE),
+    sd_alpha_DR_custom = sd(alpha_DR_custom, na.rm = TRUE),
+    
+    mean_alpha_RD_custom = mean(alpha_RD_custom, na.rm = TRUE),
+    sd_alpha_RD_custom = sd(alpha_RD_custom, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+# fitness_summary_MSPm1
+
+# 4. Plot your custom alpha_DR and alpha_RD together
+fitness_alpha_long <- fitness_df_MSPm1 %>%
+  select(
+    strain, replicate, alpha_DR_custom, alpha_RD_custom
+  ) %>%
+  pivot_longer(
+    cols = c(alpha_DR_custom, alpha_RD_custom),
+    names_to = "alpha_type",
+    values_to = "alpha_value"
+  ) %>%
+  mutate(
+    alpha_type = case_when(
+      alpha_type == "alpha_DR_custom" ~ "alpha_DR: Recipient effect on MSPm1",
+      alpha_type == "alpha_RD_custom" ~ "alpha_RD: MSPm1 effect on Recipient",
+      TRUE ~ alpha_type
+    )
+  )
+
+interComp_plot_MSPm1_both <- ggplot(
+  fitness_alpha_long,
+  aes(x = reorder(strain, alpha_value), y = alpha_value, color = strain)
+) +
+  geom_jitter(width = 0.15, alpha = 0.5, size = 2) +
+  stat_summary(
+    fun.data = "mean_se",
+    geom = "errorbar",
+    width = 0.3,
+    size = 1,
+    color = "black"
+  ) +
+  stat_summary(
+    fun = "mean",
+    geom = "point",
+    size = 4,
+    color = "black",
+    shape = 18
+  ) +
+  geom_hline(
+    yintercept = 0,
+    linetype = "dashed",
+    color = "red"
+  ) +
+  scale_color_manual(values = my_colors) +
+  facet_wrap(~ alpha_type, scales = "fixed") +
+  theme_minimal() +
+  labs(
+    title = "Interspecies competition index direct calculation",
+    subtitle = "MSPm1 as donor",
+    x = "Bacterial recipient",
+    y = "Interspecies competition index"
+  ) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    legend.position = "none"
+  )
+
+print(interComp_plot_MSPm1_both)
+
+
+
+```
