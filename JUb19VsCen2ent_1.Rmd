@@ -279,6 +279,8 @@ JUb19_CEN2ent_all_ratio <- bind_rows(
 JUb19_CEN2ent_all_ratio
 
 ```
+
+
 # Frequency lineplot(JUb19 vs CEN2ent)
 ```{r}
 # 計算頻率
@@ -319,7 +321,9 @@ ggplot(Recipient_frequency_df,
     labs(title = "Change in CEN2ent Frequency compare to JUb19(0hr vs 24hr)",
           x = "Time")
 ```
-# Interspecies coefficient alpha (JUb19 vs CEN2ent)
+# Interspecies coefficient alpha (JUb19 vs CEN2ent) (scaled by 1e9)
+\[alpha_{DR} = \left(r_D-\alpha_{DD}N_{D0}^c-\frac{lnN_{D24}^c - lnN_{D0}^c}{24}\right).\left(\frac{1}{N_{R0}^c}\right)\] 
+\[alpha_{RD} = \left(r_R-\alpha_{RR}N_{R0}^c-\frac{lnN_{R24}^c - lnN_{R0}^c}{24}\right).\left(\frac{-1}{N_{D0}^c}\right)\] 
 ```{r}
 
 # ============================================================
@@ -416,14 +420,14 @@ fit_beta_RD_overall <- lm(y_RD ~ 0 + D0_s, data = JUb19_CEN2ent_fit_df)
 overall_beta_summary <- bind_rows(
   broom::tidy(fit_beta_DR_overall) %>%
     mutate(
-      interaction = "beta_DR: CEN2ent effect on JUb19",
+      interaction = "alpha_DR: CEN2ent effect on JUb19",
       beta_estimate = estimate,
       alpha_signed = -estimate
     ),
   
   broom::tidy(fit_beta_RD_overall) %>%
     mutate(
-      interaction = "beta_RD: JUb19 effect on CEN2ent",
+      interaction = "alpha_RD: JUb19 effect on CEN2ent",
       beta_estimate = estimate,
       alpha_signed = -estimate
     )
@@ -480,7 +484,7 @@ ratio_beta_DR_summary <- JUb19_CEN2ent_fit_df %>%
   select(ratio, fit_result) %>%
   unnest(fit_result) %>%
   mutate(
-    interaction = "beta_DR: CEN2ent effect on JUb19",
+    interaction = "alpha_DR: CEN2ent effect on JUb19",
     beta_estimate = estimate,
     alpha_signed = -estimate
   )
@@ -494,7 +498,7 @@ ratio_beta_RD_summary <- JUb19_CEN2ent_fit_df %>%
   select(ratio, fit_result) %>%
   unnest(fit_result) %>%
   mutate(
-    interaction = "beta_RD: JUb19 effect on CEN2ent",
+    interaction = "alpha_RD: JUb19 effect on CEN2ent",
     beta_estimate = estimate,
     alpha_signed = -estimate
   )
@@ -544,100 +548,75 @@ JUb19_CEN2ent_beta_obs_summary <- JUb19_CEN2ent_fit_df %>%
 
 # JUb19_CEN2ent_beta_obs_summary
 
-ratio_beta_plot <- ratio_beta_summary %>%
-  ggplot(
-    aes(
-      x = ratio,
-      y = beta_estimate,
-      group = interaction,
-      color = interaction
+overall_beta_coef_df <- overall_beta_summary %>%
+  transmute(
+    interaction,
+    beta_estimate
+  )
+
+beta_fit_plot_df <- JUb19_CEN2ent_fit_df %>%
+  select(
+    ratio,
+    replicate,
+    R0_s,
+    D0_s,
+    y_DR,
+    y_RD
+  ) %>%
+  pivot_longer(
+    cols = c(y_DR, y_RD),
+    names_to = "response_type",
+    values_to = "y_value"
+  ) %>%
+  mutate(
+    x_value = case_when(
+      response_type == "y_DR" ~ R0_s,
+      response_type == "y_RD" ~ D0_s
+    ),
+    interaction = case_when(
+      response_type == "y_DR" ~ "alpha_DR: CEN2ent effect on JUb19",
+      response_type == "y_RD" ~ "alpha_RD: JUb19 effect on CEN2ent"
     )
+  )
+
+beta_slope_plot <- ggplot(
+  beta_fit_plot_df,
+  aes(
+    x = x_value,
+    y = y_value
+  )
+) +
+  geom_point(
+    aes(color = interaction),
+    size = 2.5,
+    alpha = 0.75
+  ) +
+  geom_abline(
+    data = overall_beta_coef_df,
+    aes(
+      slope = beta_estimate,
+      intercept = 0,
+      color = interaction
+    ),
+    linewidth = 1
   ) +
   geom_hline(
     yintercept = 0,
     linetype = "dashed",
     color = "red"
   ) +
-  geom_point(size = 3) +
-  geom_errorbar(
-    aes(
-      ymin = beta_estimate - std.error,
-      ymax = beta_estimate + std.error
-    ),
-    width = 0.15
-  ) +
-  geom_line(alpha = 0.6) +
+  facet_wrap(~ interaction, scales = "free_x") +
   theme_bw() +
   labs(
-    title = "Ratio-specific interspecific limitation coefficients",
-    subtitle = "JUb19 vs CEN2ent; pooled Nstart monoculture parameters",
-    x = "Initial donor:recipient ratio",
-    y = "Interspecific limitation coefficient",
+    title = "Statistical fitting of interspecific limitation coefficients",
+    subtitle = "JUb19 as donor, CEN2ent as recipient",
+    x = "Scaled competitor initial density",
+    y = "Residual growth limitation term",
     color = "Interaction"
+  ) +
+  theme(
+    aspect.ratio = 0.75
   )
 
-print(ratio_beta_plot)
-
-JUb19_CEN2ent_beta_long <- JUb19_CEN2ent_fit_df %>%
-  select(
-    strain,
-    replicate,
-    ratio,
-    beta_DR_obs,
-    beta_RD_obs
-  ) %>%
-  pivot_longer(
-    cols = c(beta_DR_obs, beta_RD_obs),
-    names_to = "interaction",
-    values_to = "beta_value"
-  ) %>%
-  mutate(
-    interaction = case_when(
-      interaction == "beta_DR_obs" ~ "beta_DR: CEN2ent effect on JUb19",
-      interaction == "beta_RD_obs" ~ "beta_RD: JUb19 effect on CEN2ent",
-      TRUE ~ interaction
-    )
-  )
-
-# JUb19_CEN2ent_beta_obs_plot <- ggplot(
-#   JUb19_CEN2ent_beta_long,
-#   aes(
-#     x = ratio,
-#     y = beta_value,
-#     color = interaction
-#   )
-# ) +
-#   geom_hline(
-#     yintercept = 0,
-#     linetype = "dashed",
-#     color = "red"
-#   ) +
-#   geom_jitter(
-#     width = 0.08,
-#     alpha = 0.6,
-#     size = 2
-#   ) +
-#   stat_summary(
-#     fun.data = "mean_se",
-#     geom = "errorbar",
-#     width = 0.2,
-#     color = "black"
-#   ) +
-#   stat_summary(
-#     fun = "mean",
-#     geom = "point",
-#     size = 3.5,
-#     color = "black",
-#     shape = 18
-#   ) +
-#   facet_wrap(~ interaction, scales = "free_y") +
-#   theme_bw() +
-#   labs(
-#     title = "Replicate-wise interspecific limitation estimates",
-#     subtitle = "JUb19 vs CEN2ent across initial ratios",
-#     x = "Initial donor:recipient ratio",
-#     y = "beta interspecific limitation coefficient"
-#   )
-# 
-# print(JUb19_CEN2ent_beta_obs_plot)
+print(beta_slope_plot)
 ```
