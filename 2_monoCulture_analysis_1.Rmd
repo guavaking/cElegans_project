@@ -62,7 +62,7 @@ ggplot(mono_growth_long,aes(x = time_hr, y = log_CFU,
 
 
 ## alpha_ii and r_i from monoculture (statistical fitting) (scaled by 1e9) 
-\[alpha_{ii} = (\left(\frac{lnN_{i24}^m - lnN_{i0}^m}{24}\right)-r_{i}).\left(\frac{-1}{N_{i0}^m}\right)\]
+\[alpha_{ii} = (\left(\frac{lnN_{i24}^m - lnN_{i0}^m}{24}\right)-r_{i}).\left(\frac{1}{N_{i0}^m}\right)\]
 ```{r}
 make_interval_df <- function(df, source_name, scale_factor = 1e9) {
   df <- df %>%
