@@ -321,9 +321,9 @@ ggplot(Recipient_frequency_df,
     labs(title = "Change in CEN2ent Frequency compare to JUb19(0hr vs 24hr)",
           x = "Time")
 ```
-# Interspecies coefficient alpha (JUb19 vs CEN2ent) (scaled by 1e9)
-\[alpha_{DR} = \left(r_D-\alpha_{DD}N_{D0}^c-\frac{lnN_{D24}^c - lnN_{D0}^c}{24}\right).\left(\frac{1}{N_{R0}^c}\right)\] 
-\[alpha_{RD} = \left(r_R-\alpha_{RR}N_{R0}^c-\frac{lnN_{R24}^c - lnN_{R0}^c}{24}\right).\left(\frac{-1}{N_{D0}^c}\right)\] 
+# Interspecies coefficient alpha (JUb19 vs CEN2ent) (scaled by 1e9) 
+\[alpha_{DR} = \left(\frac{lnN_{D24}^c - lnN_{D0}^c}{24}- r_D+\alpha_{DD}N_{D0}^c)\right .\left(\frac{-1}{N_{R0}^c}\right)\] 
+\[alpha_{RD} = \left(\frac{lnN_{R24}^c - lnN_{R0}^c}{24} - r_R+\alpha_{RR}N_{R0}^c)\right .\left(\frac{-1}{N_{D0}^c}\right)\] 
 ```{r}
 
 # ============================================================
@@ -388,7 +388,7 @@ JUb19_CEN2ent_fit_df <- JUb19_CEN2ent_all_ratio %>%
     r_R = param_CEN2ent$r_i,
     beta_RR = param_CEN2ent$beta_ii_selflimit,
     
-    # Rearranged model:
+     # Rearranged model:
     # y_DR = beta_DR * R0_s
     # y_RD = beta_RD * D0_s
     y_DR = r_D - beta_DD * D0_s - g_D,
@@ -411,8 +411,8 @@ JUb19_CEN2ent_fit_df <- JUb19_CEN2ent_all_ratio %>%
 # beta_RD: JUb19 effect on CEN2ent
 # ============================================================
 
-fit_beta_DR_overall <- lm(y_DR ~ 0 + R0_s, data = JUb19_CEN2ent_fit_df)
-fit_beta_RD_overall <- lm(y_RD ~ 0 + D0_s, data = JUb19_CEN2ent_fit_df)
+fit_beta_DR_overall <- lm(y_DR  ~ R0_s, data = JUb19_CEN2ent_fit_df)
+fit_beta_RD_overall <- lm(y_RD  ~ D0_s, data = JUb19_CEN2ent_fit_df)
 
 # summary(fit_beta_DR_overall)
 # summary(fit_beta_RD_overall)
@@ -457,103 +457,151 @@ overall_beta_summary <- bind_rows(
 # Estimate beta_DR and beta_RD separately for each ratio
 # ============================================================
 
-fit_one_beta <- function(df, response_var, predictor_var) {
-  
-  formula_use <- as.formula(
-    paste(response_var, "~ 0 +", predictor_var)
-  )
-  
-  fit <- lm(formula_use, data = df)
-  
-  broom::tidy(fit) %>%
-    select(
-      term,
-      estimate,
-      std.error,
-      statistic,
-      p.value
-    )
-}
+# fit_one_beta <- function(df, response_var, predictor_var) {
+#   
+#   formula_use <- as.formula(
+#     paste(response_var, "~ ", predictor_var)
+#   )
+#   
+#   fit <- lm(formula_use, data = df)
+#   
+#   broom::tidy(fit) %>%
+#     select(
+#       term,
+#       estimate,
+#       std.error,
+#       statistic,
+#       p.value
+#     )
+# }
 
-ratio_beta_DR_summary <- JUb19_CEN2ent_fit_df %>%
-  group_by(ratio) %>%
-  nest() %>%
-  mutate(
-    fit_result = map(data, ~ fit_one_beta(.x, "y_DR", "R0_s"))
-  ) %>%
-  select(ratio, fit_result) %>%
-  unnest(fit_result) %>%
-  mutate(
-    interaction = "alpha_DR: CEN2ent effect on JUb19",
-    beta_estimate = estimate,
-    alpha_signed = -estimate
-  )
-
-ratio_beta_RD_summary <- JUb19_CEN2ent_fit_df %>%
-  group_by(ratio) %>%
-  nest() %>%
-  mutate(
-    fit_result = map(data, ~ fit_one_beta(.x, "y_RD", "D0_s"))
-  ) %>%
-  select(ratio, fit_result) %>%
-  unnest(fit_result) %>%
-  mutate(
-    interaction = "alpha_RD: JUb19 effect on CEN2ent",
-    beta_estimate = estimate,
-    alpha_signed = -estimate
-  )
-
-ratio_beta_summary <- bind_rows(
-  ratio_beta_DR_summary,
-  ratio_beta_RD_summary
-) %>%
-  select(
-    ratio,
-    interaction,
-    term,
-    beta_estimate,
-    std.error,
-    statistic,
-    p.value,
-    alpha_signed
-  ) %>%
-  mutate(
-    interpretation = case_when(
-      beta_estimate > 0 & p.value < 0.05 ~ "significant suppression",
-      beta_estimate > 0 ~ "suppression trend",
-      beta_estimate < 0 & p.value < 0.05 ~ "significant facilitation-like effect",
-      beta_estimate < 0 ~ "facilitation-like trend",
-      TRUE ~ "unclear"
-    )
-  )
-
+# ratio_beta_DR_summary <- JUb19_CEN2ent_fit_df %>%
+#   group_by(ratio) %>%
+#   nest() %>%
+#   mutate(
+#     fit_result = map(data, ~ fit_one_beta(.x, "y_DR", "R0_s"))
+#   ) %>%
+#   select(ratio, fit_result) %>%
+#   unnest(fit_result) %>%
+#   mutate(
+#     interaction = "alpha_DR: CEN2ent effect on JUb19",
+#     beta_estimate = estimate,
+#     alpha_signed = -estimate
+#   )
+# 
+# ratio_beta_RD_summary <- JUb19_CEN2ent_fit_df %>%
+#   group_by(ratio) %>%
+#   nest() %>%
+#   mutate(
+#     fit_result = map(data, ~ fit_one_beta(.x, "y_RD", "D0_s"))
+#   ) %>%
+#   select(ratio, fit_result) %>%
+#   unnest(fit_result) %>%
+#   mutate(
+#     interaction = "alpha_RD: JUb19 effect on CEN2ent",
+#     beta_estimate = estimate,
+#     alpha_signed = -estimate
+#   )
+# 
+# ratio_beta_summary <- bind_rows(
+#   ratio_beta_DR_summary,
+#   ratio_beta_RD_summary
+# ) %>%
+#   select(
+#     ratio,
+#     interaction,
+#     term,
+#     beta_estimate,
+#     std.error,
+#     statistic,
+#     p.value,
+#     alpha_signed
+#   ) %>%
+#   mutate(
+#     interpretation = case_when(
+#       beta_estimate > 0 & p.value < 0.05 ~ "significant suppression",
+#       beta_estimate > 0 ~ "suppression trend",
+#       beta_estimate < 0 & p.value < 0.05 ~ "significant facilitation-like effect",
+#       beta_estimate < 0 ~ "facilitation-like trend",
+#       TRUE ~ "unclear"
+#     )
+#   )
 # ratio_beta_summary
 
 
-JUb19_CEN2ent_beta_obs_summary <- JUb19_CEN2ent_fit_df %>%
-  group_by(ratio) %>%
-  summarise(
-    n = n(),
-    
-    mean_beta_DR_obs = mean(beta_DR_obs, na.rm = TRUE),
-    sd_beta_DR_obs = sd(beta_DR_obs, na.rm = TRUE),
-    se_beta_DR_obs = sd_beta_DR_obs / sqrt(n),
-    
-    mean_beta_RD_obs = mean(beta_RD_obs, na.rm = TRUE),
-    sd_beta_RD_obs = sd(beta_RD_obs, na.rm = TRUE),
-    se_beta_RD_obs = sd_beta_RD_obs / sqrt(n),
-    
-    .groups = "drop"
-  )
-
+# JUb19_CEN2ent_beta_obs_summary <- JUb19_CEN2ent_fit_df %>%
+#   group_by(ratio) %>%
+#   summarise(
+#     n = n(),
+#     
+#     mean_beta_DR_obs = mean(beta_DR_obs, na.rm = TRUE),
+#     sd_beta_DR_obs = sd(beta_DR_obs, na.rm = TRUE),
+#     se_beta_DR_obs = sd_beta_DR_obs / sqrt(n),
+#     
+#     mean_beta_RD_obs = mean(beta_RD_obs, na.rm = TRUE),
+#     sd_beta_RD_obs = sd(beta_RD_obs, na.rm = TRUE),
+#     se_beta_RD_obs = sd_beta_RD_obs / sqrt(n),
+#     
+#     .groups = "drop"
+#   )
 # JUb19_CEN2ent_beta_obs_summary
 
-overall_beta_coef_df <- overall_beta_summary %>%
-  transmute(
+overall_beta_summary_intercept <- bind_rows(
+  
+  broom::tidy(fit_beta_DR_overall) %>%
+    mutate(
+      interaction = "alpha_DR: CEN2ent effect on JUb19",
+      model = "with intercept"
+    ),
+  
+  broom::tidy(fit_beta_RD_overall) %>%
+    mutate(
+      interaction = "alpha_RD: JUb19 effect on CEN2ent",
+      model = "with intercept"
+    )
+) %>%
+  select(
     interaction,
-    beta_estimate
+    model,
+    term,
+    estimate,
+    std.error,
+    statistic,
+    p.value
   )
 
+overall_beta_summary_wide <- overall_beta_summary_intercept %>%
+  mutate(
+    parameter = case_when(
+      term == "(Intercept)" ~ "intercept",
+      term %in% c("R0_s", "D0_s") ~ "beta",
+      TRUE ~ term
+    )
+  ) %>%
+  select(
+    interaction,
+    model,
+    parameter,
+    estimate,
+    std.error,
+    statistic,
+    p.value
+  ) %>%
+  pivot_wider(
+    names_from = parameter,
+    values_from = c(estimate, std.error, statistic, p.value)
+  ) %>%
+  mutate(
+    alpha_signed = -estimate_beta,
+    estimate_intercept_signed_form = -estimate_intercept,
+    interpretation = case_when(
+      estimate_beta > 0 & p.value_beta < 0.05 ~ "significant suppression",
+      estimate_beta > 0 ~ "suppression trend",
+      estimate_beta < 0 & p.value_beta < 0.05 ~ "significant facilitation-like effect",
+      estimate_beta < 0 ~ "facilitation-like trend",
+      TRUE ~ "unclear"
+    )
+  )
 beta_fit_plot_df <- JUb19_CEN2ent_fit_df %>%
   select(
     ratio,
@@ -561,25 +609,29 @@ beta_fit_plot_df <- JUb19_CEN2ent_fit_df %>%
     R0_s,
     D0_s,
     y_DR,
-    y_RD
+    y_RD,
+    alpha_DR_signed_obs,
+    alpha_RD_signed_obs
   ) %>%
+  mutate(signed_y_DR = -y_DR,
+         signed_y_RD = -y_RD) %>%
   pivot_longer(
-    cols = c(y_DR, y_RD),
+    cols = c(signed_y_DR, signed_y_RD),   # change y value
     names_to = "response_type",
     values_to = "y_value"
   ) %>%
   mutate(
-    x_value = case_when(
-      response_type == "y_DR" ~ R0_s,
-      response_type == "y_RD" ~ D0_s
+    x_value = case_when(                  # change x value
+      response_type == "signed_y_DR" ~ R0_s,
+      response_type == "signed_y_RD" ~ D0_s
     ),
     interaction = case_when(
-      response_type == "y_DR" ~ "alpha_DR: CEN2ent effect on JUb19",
-      response_type == "y_RD" ~ "alpha_RD: JUb19 effect on CEN2ent"
+      response_type == "signed_y_DR" ~ "alpha_DR: CEN2ent effect on JUb19",
+      response_type == "signed_y_RD" ~ "alpha_RD: JUb19 effect on CEN2ent"
     )
   )
 
-beta_slope_plot <- ggplot(
+interaction_slope_plot <- ggplot(
   beta_fit_plot_df,
   aes(
     x = x_value,
@@ -592,10 +644,9 @@ beta_slope_plot <- ggplot(
     alpha = 0.75
   ) +
   geom_abline(
-    data = overall_beta_coef_df,
+    data = overall_beta_summary_wide,
     aes(
-      slope = beta_estimate,
-      intercept = 0,
+      slope = alpha_signed, intercept = estimate_intercept_signed_form,
       color = interaction
     ),
     linewidth = 1
@@ -618,5 +669,5 @@ beta_slope_plot <- ggplot(
     aspect.ratio = 0.75
   )
 
-print(beta_slope_plot)
+print(interaction_slope_plot)
 ```
