@@ -1,16 +1,23 @@
 ---
 title: "Monoculture analysis"
-output: html_notebook
+output:
+  html_document:
+    df_print: paged
 ---
+```{r load child, child="1_data_pretreatment_1.Rmd"}
+```
+
+```{r color setting, echo = FALSE}
 # color selection for plots
-```{r}
 all_strains <- sort(unique(c(mono_24hr$strain)))
 base_colors <- c(brewer.pal(12, "Paired"), brewer.pal(8, "Set2"))
 get_palette <- colorRampPalette(base_colors)
 my_colors <- setNames(get_palette(length(all_strains)), all_strains)
 ```
+
 # Monogrowth line in different OD level
-```{r}
+For each microbe, we show the population size change over 24 hours. Colors represent different starting OD values. 
+```{r visualize monoculture, echo = FALSE}
 mono_growth_long <- mono_df_all %>%
     select(
         strain, replicate, OD,
@@ -61,9 +68,11 @@ ggplot(mono_growth_long,aes(x = time_hr, y = log_CFU,
 ```
 
 
-## alpha_ii and r_i from monoculture (statistical fitting) (scaled by 1e9) 
-\[alpha_{ii} = (\left(\frac{lnN_{i24}^m - lnN_{i0}^m}{24}\right)-r_{i}).\left(\frac{1}{N_{i0}^m}\right)\]
-```{r}
+## $\alpha_{ii}$ and $r_i$ from monoculture (statistical fitting) 
+Consider a Lotkta--Volterra competition model in the form of $\frac{dN_i}{dt} = N_i(r_i-\alpha_{ii}N_i-\alpha_{ij}N_j)$. Here, we combined all monoculture growth assay data from different initial OD values to perform a linear regression (all density data were scaled by $10^9$ prior to calculation). The response variable is $\frac{\Delta lnN_i}{\Delta t}$, which is an estimate of the species per capita growth rate, and the dependent variable is the initial density at 0 hr. This allowed us to estimate each species' intraspecific competition: the y-intercept represents the species' intrinsic growth rate ($r_i$) and the slope represents the strength of intraspecific competition ($\alpha_{ii}$). We were able to employ this statistical approach because the different OD dataset spans a large-enough range of initial values. Below, we show: (1) a depiction of the statistial fit, (2) species' estimated intraspecific competition strength $\alpha_{ii}$, and (3) species' estimated intrinsic growth rate $r_i$. Microbe JUb19 is a species with high intrinsic growth rate and weak self-limitation.
+<!--
+\[alpha_{ii} = (\left(\frac{lnN_{i24}^m - lnN_{i0}^m}{24}\right)-r_{i}).\left(\frac{1}{N_{i0}^m}\right)\]-->
+```{r statistically estimate r and alpha, echo = FALSE}
 make_interval_df <- function(df, source_name, scale_factor = 1e9) {
   df <- df %>%
     mutate(source = source_name)
@@ -260,7 +269,7 @@ ggplot(interval_all_pooled, aes(x = N_start, y = g)) +
   facet_wrap(~ strain, scales = "free") +
   theme_bw() +
   labs(
-    title = "All OD monoculture-derived alpha_ii",
+    title = "(1) All OD monoculture data",
     subtitle = "alpha_ii is estimated from g = r_i + alpha_ii_coefficient * N_0",
     x = "Strain density change, N_0 ",
     y = "Per-capita growth rate, log(N_24/N_0) / hour"
@@ -295,7 +304,7 @@ self_limitation_strength_plot <- alpha_selflimit_N0 %>%
   coord_flip() +
   theme_bw() +
   labs(
-    title = "Self-limitation strength alpha_ii",
+    title = "(2) Self-limitation strength alpha_ii",
     # subtitle = "expression(alpha[ii] == -alpha[ii]^ce)",
     x = "Strain",
     y = "alpha_ii" #self limitation strength
@@ -317,7 +326,7 @@ ggplot(r_i_OD_all_summary, aes(x = reorder(strain, estimate), y = estimate, colo
   coord_flip() +
   theme_bw() +
   labs(
-    title = "Estimated r_i from monoculture data",
+    title = "(3) Estimated r_i from monoculture data",
     x = "Strain",
     y = "r_i estimate"
   )

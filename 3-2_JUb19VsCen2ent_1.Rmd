@@ -1,11 +1,22 @@
 ---
-title: "JUb19 vs cen2ent"
-output: html_notebook
+title: "JUb19 versus CEN2ent"
+output:
+  html_document:
+    df_print: paged
 ---
- 
-# JUb19 vs cen2ent
-```{r}
+```{r load child-JUb19, include=FALSE}
+# 1. Extract only the R code from the child Rmd file
+temp_script <- tempfile(fileext = ".R")
+knitr::purl("3_Jub19_analysis_1.Rmd", output = temp_script, quiet = TRUE)
 
+# 2. Source the extracted code silently into your environment
+source(temp_script)
+```
+Based on May 7th Discussion, JUb19 and CEN2ent became a main interest, and we now conducted the competition experiment under different initial frequencies. This allowed us to estimate competition coefficients via a different approach; thus, we give it a separate treatment here. 
+
+# Data formating from pairwise competition
+Compile data from different competition assays (JUb19 as donor and CEN2ent species as recipient) at start (0 hr) and end (24 hr) points (under OD = 1).
+```{r, JUbvsCEN-data, echo = FALSE}
 JUb19_CEN2ent_raw <- Pairwise_competition_assay_JUb19_vs_CEN2ent_DR_91_19
 
 
@@ -281,8 +292,9 @@ JUb19_CEN2ent_all_ratio
 ```
 
 
-# Frequency lineplot(JUb19 vs CEN2ent)
-```{r}
+# Frequency lineplot (JUb19 vs CEN2ent)
+Here, as a first attempt to visualize the competitive outcome, we plot the frequency change across 0 and 24 hrs. The first figure shows the frequency change for JUb19 (donor) and the second mirrored figure shows that for CEN2ent (recipient). Overall, there's a signature of species coexistence: the rare species increase in frequency whereas the abundant species decreases in frequency.
+```{r JUBvsCEN-lineplot, echo = FALSE}
 # 計算頻率
 Donor_frequency_df <- JUb19_CEN2ent_all_ratio %>%
     mutate(
@@ -318,14 +330,15 @@ ggplot(Recipient_frequency_df,
     facet_wrap(~strain) +
   scale_color_manual(values = my_colors)+
     theme_minimal() +
-    labs(title = "Change in CEN2ent Frequency compare to JUb19(0hr vs 24hr)",
+    labs(title = "Change in CEN2ent Frequency compare to JUb19 (0hr vs 24hr)",
           x = "Time")
 ```
-# Interspecies coefficient alpha (JUb19 vs CEN2ent) (scaled by 1e9) 
-\[alpha_{DR} = \left(\frac{lnN_{D24}^c - lnN_{D0}^c}{24}- r_D+\alpha_{DD}N_{D0}^c)\right .\left(\frac{-1}{N_{R0}^c}\right)\] 
-\[alpha_{RD} = \left(\frac{lnN_{R24}^c - lnN_{R0}^c}{24} - r_R+\alpha_{RR}N_{R0}^c)\right .\left(\frac{-1}{N_{D0}^c}\right)\] 
-```{r}
 
+# Interspecies coefficient alpha (JUb19 vs CEN2ent) 
+Again, consider a Lotkta--Volterra competition model in the form of $\frac{dN_i}{dt} = N_i(r_i-\alpha_{ii}N_i-\alpha_{ij}N_j)$. Previously, we estimated the interspecific competition coefficients ($\alpha_{ij}$) by rearranging the growth expression. That is:
+\[\alpha_{ij} = \left[\hat{r_i}-\hat{\alpha_{ii}}N_{i0}^c-\left(\frac{lnN_{i24}^c - lnN_{i0}^c}{24})\right)\right].\left(\frac{1}{N_{j0}^c}\right)\] 
+Here, however, since we have a large initial density gradient for the competition between JUb19 and CEN2ent, we can apply the same statistical fitting approach used to obtained the intraspecific competition coefficients. We did this is a "sequential" approach: the response variable is the difference between the observed per capita growth rate ($\frac{\Delta lnN_i}{\Delta t}$) and the intraspecific competitive impact (i.e., $\hat{r_i}-\hat{\alpha_{ii}}N_{i0}^c$), termed the "residual" in the following figures. This residual term is modeled as a function of the initial heterospecific competitor density ($N_{j0}^c$), and the resulting slope represents the interspecific competition coefficient. Note again all density data were scaled by $10^9$ prior to calculation. Below, we show (left) the estimated effect of CEN2ent on JUb19 ($\alpha_{\textrm{JUb19, CEN2ent}}$), and (right) the estimated effect of JUb19 on CEN2ent ($\alpha_{\textrm{CEN2ent, JUb19}}$). A more detailed comparison of this approach and the previous one, as well as the simulated over competitive outcome, will follow soon. 
+```{r JUBvsCEN-coefficient, echo = FALSE}
 # ============================================================
 # JUb19 vs CEN2ent statistical fit for beta_DR and beta_RD
 # Parameter source: pooled Nstart monoculture model

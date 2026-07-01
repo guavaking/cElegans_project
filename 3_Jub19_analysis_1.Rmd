@@ -1,11 +1,21 @@
 ---
-title: "Jub19 data vs others"
-output: html_notebook
+title: "JUb19 as donor versus all other recipients"
+output:
+  html_document:
+    df_print: paged
 ---
+```{r load child-monoculture, include=FALSE}
+# 1. Extract only the R code from the child Rmd file
+temp_script <- tempfile(fileext = ".R")
+knitr::purl("2_monoCulture_analysis_1.Rmd", output = temp_script, quiet = TRUE)
 
-## JUb19 
+# 2. Source the extracted code silently into your environment
+source(temp_script)
+```
+
 # Data formating from pairwise competition
-```{r}
+Compile data from different competition assays (JUb19 as donor and other species as recipient) at start (0 hr) and end (24 hr) points (under OD = 1).
+```{r JUb19-data, echo = FALSE}
 ## 0 hr
 pairJUb19_0hr_untreated <- Pairwise_culture_JUb19_0hr
 
@@ -187,8 +197,9 @@ pairJUb19 <- pairJUb19 %>%
 pairJUb19
 ```
 
-# Frequency lineplot(JUb19 vs others)
-```{r}
+# Frequency lineplot (JUb19 vs others)
+Here, as a first attempt to visualize the competitive outcome, we plot the frequency change across 0 and 24 hrs. The first figure shows the frequency change for JUb19 (donor) and the second mirrored figure shows that for the other species (recipient). 
+```{r JUb19-lineplot, echo = FALSE}
 # 計算頻率
 Donor_frequency_df <- pairJUb19 %>%
     mutate(
@@ -228,8 +239,9 @@ ggplot(Recipient_frequency_df,
           x = "Time")
 ```
 
-# Bivariate fitness plots(JUb19 vs others)
-```{r}
+<!--
+# Bivariate fitness plots (JUb19 vs others)
+```{r JUb19-bivariate, echo = FALSE}
 log_plot_df <- pairJUb19 %>%
     mutate(
         log_growth_donor = logD24 - logD0,       # Donor 的成長量 (D24-D0)/D0
@@ -259,11 +271,14 @@ Biplot_indi_JUb19 <- ggplot(log_plot_df, aes(x = log_growth_donor, y = log_growt
 
 print(Biplot_indi_JUb19)
 ```
+--> 
 
-# Interspecies competition value between donor and recepient (JUb19 vs others) (scaled by 1e9)
-\[alpha_{DR} = \left(r_D-\alpha_{DD}N_{D0}^c-\frac{lnN_{D24}^c - lnN_{D0}^c}{24}\right).\left(\frac{1}{N_{R0}^c}\right)\]
-\[alpha_{RD} = \left(r_R-\alpha_{RR}N_{R0}^c-\frac{lnN_{R24}^c - lnN_{R0}^c}{24}\right).\left(\frac{-1}{N_{D0}^c}\right)\] 
-```{r}
+# Interspecies competition value between donor and recepient (JUb19 vs others) 
+Again, consider a Lotkta--Volterra competition model in the form of $\frac{dN_i}{dt} = N_i(r_i-\alpha_{ii}N_i-\alpha_{ij}N_j)$. While we used a statistical fitting approach to estimate the intraspecific competition coefficients ($\alpha_{ii}$H), we cannot do that for the interspecific competition coefficients ($\alpha_{ij}$) due to the lack of a density gradient (but see the results for Jub19 and CEN2ent in a separate file). Instead, we use a "hybrid" approach. Here, in the Lotka--Volterra competition model, the per capita growth rate is still estimated as $\frac{\Delta lnN_i}{\Delta t}$, and the species' $r_i$ and $\alpha_{ii}$ are obtained by the previous statistical fitting results for the monoculture growth assay (i.e., $\hat{r_i}$ and $\hat{\alpha_{ii}}$). By rearranging the equation, we can indirectly obtain an esitmate for the interspecific competition coefficients as follows:   
+\[\alpha_{DR} = \left[\hat{r_D}-\hat{\alpha_{DD}}N_{D0}^c-\left(\frac{lnN_{D24}^c - lnN_{D0}^c}{24}\right)\right].\left(\frac{1}{N_{R0}^c}\right)\]
+\[\alpha_{RD} = \left[\hat{r_R}-\hat{\alpha_{RR}}N_{R0}^c-\left(\frac{lnN_{R24}^c - lnN_{R0}^c}{24}\right)\right].\left(\frac{1}{N_{D0}^c}\right)\], 
+where $N_{jt}^c$ represents the scaled population size of species $j$ (= $D$ of $R$) at time $t$ (= 0 or 24 hr) within the co-culture (superscript $c$). Note again all density data were scaled by $10^9$ prior to calculation. Below, we show (left) the estimated effect of other recipient species of JUb19 ($\alpha_{DR}$), and (right) the estimated effect of JUb19 on the other recipient species ($\alpha_{RD}$, with $D$ = JUb19). Indeed, most species are heavily impacted by JUb19 except CEN2ent.
+```{r JUb19-coefficient, echo = FALSE}
 scale_factor <- 1e9
 
 # ============================================================

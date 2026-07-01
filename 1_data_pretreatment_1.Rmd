@@ -1,11 +1,13 @@
 ---
 title: "Data structure reconstruction"
-output: html_notebook
+output:
+  html_document:
+    df_print: paged
 ---
 
 
 #libraries
-```{r}
+```{r load library, include=FALSE}
 library(readxl)
 library(dplyr)
 library(tidyr)
@@ -21,48 +23,49 @@ library(broom)
 ```
 
 #load data (change pathway here)
-```{r}
+```{r load data, echo = FALSE}
 ## Monoculture
-mono_culture_growth_assay_of_CeMbio_0hr <- read_excel("D:/ntu/11_kekelab/cElegent_project_AS/20250809 mono-culture growth assay of CeMbio strains wo nitrocellulose membrane.xlsx", 
+mono_culture_growth_assay_of_CeMbio_0hr <- read_excel("20250809 mono-culture growth assay of CeMbio strains wo nitrocellulose membrane.xlsx", 
     sheet = "0 hr")
-mono_culture_growth_assay_of_CeMbio_24hr <- read_excel("D:/ntu/11_kekelab/cElegent_project_AS/20250809 mono-culture growth assay of CeMbio strains wo nitrocellulose membrane.xlsx", 
+mono_culture_growth_assay_of_CeMbio_24hr <- read_excel("20250809 mono-culture growth assay of CeMbio strains wo nitrocellulose membrane.xlsx", 
     sheet = "24 hr")
-mono_culture_growth_assay_of_CeMbio_strains_initial_OD_0_1_0hr <- read_excel("D:/ntu/11_kekelab/cElegent_project_AS/20260514 mono-culture growth assay of CeMbio strains (initial OD=0.1).xlsx", 
+mono_culture_growth_assay_of_CeMbio_strains_initial_OD_0_1_0hr <- read_excel("20260514 mono-culture growth assay of CeMbio strains (initial OD=0.1).xlsx", 
     sheet = "0 hr")
-mono_culture_growth_assay_of_CeMbio_strains_initial_OD_0_1_24hr <- read_excel("D:/ntu/11_kekelab/cElegent_project_AS/20260514 mono-culture growth assay of CeMbio strains (initial OD=0.1).xlsx", 
+mono_culture_growth_assay_of_CeMbio_strains_initial_OD_0_1_24hr <- read_excel("20260514 mono-culture growth assay of CeMbio strains (initial OD=0.1).xlsx", 
     sheet = "24 hr")
-mono_culture_growth_assay_of_CeMbio_strains_initial_OD_0_5_0hr <- read_excel("D:/ntu/11_kekelab/cElegent_project_AS/20260518 mono-culture growth assay of CeMbio strains (initial OD=0.5).xlsx", 
+mono_culture_growth_assay_of_CeMbio_strains_initial_OD_0_5_0hr <- read_excel("20260518 mono-culture growth assay of CeMbio strains (initial OD=0.5).xlsx", 
     sheet = "0 hr")
-mono_culture_growth_assay_of_CeMbio_strains_initial_OD_0_5_12hr <- read_excel("D:/ntu/11_kekelab/cElegent_project_AS/20260518 mono-culture growth assay of CeMbio strains (initial OD=0.5).xlsx", 
+mono_culture_growth_assay_of_CeMbio_strains_initial_OD_0_5_12hr <- read_excel("20260518 mono-culture growth assay of CeMbio strains (initial OD=0.5).xlsx", 
     sheet = "12 hr")
-mono_culture_growth_assay_of_CeMbio_strains_initial_OD_0_5_24hr <- read_excel("D:/ntu/11_kekelab/cElegent_project_AS/20260518 mono-culture growth assay of CeMbio strains (initial OD=0.5).xlsx", 
+mono_culture_growth_assay_of_CeMbio_strains_initial_OD_0_5_24hr <- read_excel("20260518 mono-culture growth assay of CeMbio strains (initial OD=0.5).xlsx", 
     sheet = "24 hr")
 
 ##Pairwise culture
 #Jub19 vs other
-Pairwise_culture_JUb19_0hr <- read_excel("D:/ntu/11_kekelab/cElegent_project_AS/20260111 Pairwise competition assay (JUb19 vs CeMbio)-summary.xlsx", 
+Pairwise_culture_JUb19_0hr <- read_excel("20260111 Pairwise competition assay (JUb19 vs CeMbio)-summary.xlsx", 
     sheet = "0 hr")
-Pairwise_culture_JUb19_24hr <- read_excel("D:/ntu/11_kekelab/cElegent_project_AS/20260111 Pairwise competition assay (JUb19 vs CeMbio)-summary.xlsx", 
+Pairwise_culture_JUb19_24hr <- read_excel("20260111 Pairwise competition assay (JUb19 vs CeMbio)-summary.xlsx", 
     sheet = "24 hr")
 
 #pair wise culture MSPm1 vs other (lack Jub19)
-Pairwise_culture_MSPm1_0hr <- read_excel("D:/ntu/11_kekelab/cElegent_project_AS/20260414 Pairwise competition assay (MSPm1 vs CeMbio)-summary.xlsx", 
+Pairwise_culture_MSPm1_0hr <- read_excel("20260414 Pairwise competition assay (MSPm1 vs CeMbio)-summary.xlsx", 
     sheet = "0 hr")
-Pairwise_culture_MSPm1_24hr <- read_excel("D:/ntu/11_kekelab/cElegent_project_AS/20260414 Pairwise competition assay (MSPm1 vs CeMbio)-summary.xlsx", 
+Pairwise_culture_MSPm1_24hr <- read_excel("20260414 Pairwise competition assay (MSPm1 vs CeMbio)-summary.xlsx", 
     sheet = "24 hr")
 
 
-JUb19_male_leaving_raw_data <- read_excel("D:/ntu/11_kekelab/cElegent_project_AS/JUb19 male leaving raw data.xlsx", 
+JUb19_male_leaving_raw_data <- read_excel("JUb19 male leaving raw data.xlsx", 
     sheet = "Sheet1")
 
-Pairwise_competition_assay_JUb19_vs_CEN2ent_DR_91_19 <- read_excel("D:/ntu/11_kekelab/cElegent_project_AS/20260508 Pairwise competition assay (JUb19 vs CEN2ent)-DR=91 ; 19.xlsx")
-
+Pairwise_competition_assay_JUb19_vs_CEN2ent_DR_91_19 <- read_excel("20260508 Pairwise competition assay (JUb19 vs CEN2ent)-DR=91 ; 19.xlsx")
 ```
 
-## Data format reconstruction
-#Data formating from monoculture (mono_0hr, mono_24hr, mono_df(conbine 0hr and 24hr), monoMean_df(calculate strains mean of mono_df))
-# Monoculture bacteria strain in 0 hr
-```{r}
+<!-- # Data format reconstruction
+Data formating from monoculture (mono_0hr, mono_24hr, mono_df(conbine 0hr and 24hr), monoMean_df (calculate strains mean of mono_df))-->
+
+# Monoculture bacteria strain in 0 hr and 24 hr (OD1)
+Compile data from different sheets to get population size at start (0 hr) and end (24 hr) points under OD = 1.
+```{r monoculture OD1, echo = FALSE}
 # Monoculture 0 hr treatment
 mono_0hr_untreat <- mono_culture_growth_assay_of_CeMbio_0hr
 
@@ -137,11 +140,8 @@ mono_0hr <- tidy_df %>%
   
   mutate(`growth time` = "0hr") %>%  #
   select(strain, replicate, everything())
-
 # mono_0hr
-```
-# Monoculture bacteria strain in 24 hr
-```{r}
+
 ## Monoculture 24 hr treatment
 mono_24hr_untreat <- mono_culture_growth_assay_of_CeMbio_24hr
 
@@ -218,7 +218,6 @@ mono_24hr <- tidy_df %>%
   
   mutate(`growth time` = "24hr") %>%  #
   select(strain, replicate, everything())
-
 # mono_24hr
 
 ## combine mono_0hr and mono_24hr
@@ -227,7 +226,8 @@ mono_df <- inner_join(
   mono_24hr %>% select(strain, replicate, M24 = `CFU/ml`,logM24 = `log CFU/ml`),
   by = c("strain", "replicate")
 )
-mono_df
+mono_df # Print file
+
 mono_df <- mono_df %>%
   filter(strain != "OP50") # OP50 is background strain
 
@@ -236,13 +236,12 @@ monoMean_df <- mono_df %>%
   summarise(mean_M0 = mean(M0, na.rm = TRUE), mean_M24=mean(M24, na.rm = TRUE), 
             mean_logM0 = mean(logM0, na.rm = TRUE), mean_logM24 = mean(logM24, na.rm = TRUE), 
             .groups = "drop")
-
 # monoMean_df
-
 ```
-## OD 0.1 and OD0.5 data reconstruction and binding to OD1 data
-```{r}
 
+## OD0.1 and OD0.5 data reconstruction and binding to OD1 data
+Based on May 7th Discussion, conducted monoculture growth assay at lower initial densities. Compile data from all OD values.
+```{r monoculture other OD, echo = FALSE}
 clean_mono_sheet <- function(raw_df, time_label, OD) {
   
   parse_num2 <- function(x) {
@@ -430,7 +429,8 @@ mono_df_all <- bind_rows(
   mono_df %>%
     mutate(OD = "1")
 )
-mono_df_all
+mono_df_all # Print file
+
 # 分開保留
 mono_df_OD_0_1 <- mono_df_all %>%
   filter(OD == "0.1")
@@ -466,6 +466,5 @@ monoMean_OD_0_5 <- mono_df_OD_0_5 %>%
   ) %>%
   mutate(OD = "0.5")
 # monoMean_OD_0_5
-
 ```
 
